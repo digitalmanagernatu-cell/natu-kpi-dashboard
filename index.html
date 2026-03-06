@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Natu Laboratories — KPI Dashboard</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+
+  <!-- React 18 -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Recharts -->
+  <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+
+  <style>
+    /* ── Variables ─────────────────────────────────────────────────────── */
+    :root {
+      --bg:           #0a0a0f;
+      --bg2:          #111118;
+      --bg3:          #1a1a26;
+      --bg4:          #22222f;
+      --border:       rgba(201,168,76,.10);
+      --border-h:     rgba(201,168,76,.28);
+      --gold:         #c9a84c;
+      --gold-dim:     rgba(201,168,76,.55);
+      --gold-bg:      rgba(201,168,76,.08);
+      --gold-bg-h:    rgba(201,168,76,.15);
+      --text:         #eaeaf4;
+      --text-muted:   #6b6b84;
+      --text-dim:     #9898b2;
+      --success:      #4caf85;
+      --danger:       #e05a5a;
+      --warn:         #f0a040;
+    }
+
+    /* ── Reset ─────────────────────────────────────────────────────────── */
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    #root { min-height:100vh; display:flex; flex-direction:column; }
+
+    /* ── Scrollbar ──────────────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width:5px; height:5px; }
+    ::-webkit-scrollbar-track { background:var(--bg2); }
+    ::-webkit-scrollbar-thumb { background:rgba(201,168,76,.2); border-radius:4px; }
+
+    /* ── Animations ─────────────────────────────────────────────────────── */
+    @keyframes fadeUp  { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:none} }
+    @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
+    @keyframes spin    { to{transform:rotate(360deg)} }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    @keyframes pulse   { 0%,100%{opacity:1} 50%{opacity:.45} }
+
+    .fade-up { animation:fadeUp .38s ease both; }
+    .fade-in { animation:fadeIn .28s ease both; }
+
+    /* ── Layout ─────────────────────────────────────────────────────────── */
+    .app { flex:1; display:flex; flex-direction:column; }
+
+    /* Header */
+    .hdr {
+      position:sticky; top:0; z-index:200;
+      background:rgba(10,10,15,.9);
+      backdrop-filter:blur(14px);
+      border-bottom:1px solid var(--border);
+      padding:0 36px;
+    }
+    .hdr-inner {
+      max-width:1480px; margin:0 auto;
+      display:flex; align-items:center; gap:28px; height:62px;
+    }
+
+    /* Logo */
+    .logo { display:flex; align-items:center; gap:11px; flex-shrink:0; }
+    .logo-mark {
+      width:34px; height:34px;
+      background:var(--gold-bg);
+      border:1px solid var(--gold);
+      border-radius:8px;
+      display:flex; align-items:center; justify-content:center;
+      font-family:'Playfair Display',serif;
+      font-size:15px; font-weight:700; color:var(--gold);
+    }
+    .logo-text { font-family:'Playfair Display',serif; font-size:15px; font-weight:600; color:var(--text); }
+    .logo-sub { display:block; font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.1em; }
+
+    /* Market tabs */
+    .mkt-tabs { display:flex; gap:3px; flex:1; }
+    .mkt-tab {
+      padding:6px 20px;
+      border-radius:7px;
+      border:1px solid transparent;
+      background:transparent;
+      color:var(--text-muted);
+      font-family:'DM Sans',sans-serif;
+      font-size:13px; font-weight:500;
+      cursor:pointer;
+      transition:all .2s ease;
+      white-space:nowrap;
+    }
+    .mkt-tab:hover { background:var(--bg3); color:var(--text); }
+
+    /* Header actions */
+    .hdr-actions { display:flex; gap:8px; flex-shrink:0; }
+    .btn {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:7px 15px;
+      border-radius:7px;
+      border:1px solid var(--border);
+      background:transparent;
+      color:var(--text-muted);
+      font-family:'DM Sans',sans-serif;
+      font-size:12px; font-weight:500;
+      cursor:pointer;
+      transition:all .2s ease;
+      text-decoration:none;
+    }
+    .btn:hover { background:var(--bg3); color:var(--text); border-color:var(--border-h); }
+    .btn-gold { border-color:var(--gold); color:var(--gold); }
+    .btn-gold:hover { background:var(--gold-bg); }
+    .btn:disabled { opacity:.5; cursor:not-allowed; }
+
+    /* ── Main ───────────────────────────────────────────────────────────── */
+    .main { flex:1; padding:28px 36px; max-width:1480px; margin:0 auto; width:100%; }
+
+    /* ── Month pills ────────────────────────────────────────────────────── */
+    .month-bar {
+      display:flex; align-items:center; gap:8px;
+      flex-wrap:wrap; margin-bottom:26px;
+    }
+    .month-label {
+      font-size:10px; color:var(--text-muted);
+      text-transform:uppercase; letter-spacing:.09em; flex-shrink:0;
+    }
+    .month-pill {
+      padding:4px 14px;
+      border-radius:20px;
+      border:1px solid var(--border);
+      background:transparent;
+      color:var(--text-muted);
+      font-family:'DM Sans',sans-serif;
+      font-size:12px; font-weight:500;
+      cursor:pointer;
+      transition:all .18s ease;
+    }
+    .month-pill:hover { border-color:var(--border-h); color:var(--text); }
+
+    /* ── Section ────────────────────────────────────────────────────────── */
+    .section { margin-bottom:30px; }
+    .sec-hdr { display:flex; align-items:center; gap:14px; margin-bottom:16px; }
+    .sec-title { font-family:'Playfair Display',serif; font-size:17px; font-weight:600; color:var(--text); white-space:nowrap; }
+    .sec-rule { flex:1; height:1px; background:var(--border); }
+    .sec-sub { font-size:12px; color:var(--text-muted); }
+
+    /* ── KPI Grid ───────────────────────────────────────────────────────── */
+    .kpi-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:14px; }
+    .kpi-card {
+      background:var(--bg2);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:20px 18px 16px;
+      position:relative;
+      overflow:hidden;
+      transition:transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+    }
+    .kpi-card:hover {
+      transform:translateY(-3px);
+      box-shadow:0 10px 36px rgba(0,0,0,.45);
+      border-color:var(--border-h);
+    }
+    .kpi-top-border {
+      position:absolute; top:0; left:0; right:0; height:2px;
+      border-radius:12px 12px 0 0;
+    }
+    .kpi-label {
+      font-size:10.5px; font-weight:600;
+      text-transform:uppercase; letter-spacing:.08em;
+      color:var(--text-muted); margin-bottom:10px;
+    }
+    .kpi-value {
+      font-family:'Playfair Display',serif;
+      font-size:30px; font-weight:700;
+      line-height:1.1; margin-bottom:8px;
+    }
+    .kpi-footer { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .kpi-prev { font-size:11px; color:var(--text-muted); }
+
+    /* Growth badge */
+    .gbadge {
+      display:inline-flex; align-items:center; gap:3px;
+      font-size:11px; font-weight:700;
+      padding:2px 8px; border-radius:20px;
+    }
+    .gbadge-pos { background:rgba(76,175,133,.14); color:#4caf85; }
+    .gbadge-neg { background:rgba(224,90,90,.14);  color:#e05a5a; }
+    .gbadge-neu { background:rgba(107,107,132,.14); color:var(--text-muted); }
+
+    /* ── Charts / Cards ─────────────────────────────────────────────────── */
+    .chart-card {
+      background:var(--bg2);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:22px;
+    }
+    .chart-title {
+      font-size:11px; font-weight:700;
+      text-transform:uppercase; letter-spacing:.07em;
+      color:var(--text-dim); margin-bottom:18px;
+    }
+
+    /* ── Two / Three col grids ──────────────────────────────────────────── */
+    .two-col   { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+    .three-col { display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px; }
+
+    /* ── Funnel ─────────────────────────────────────────────────────────── */
+    .funnel { display:flex; flex-direction:column; gap:10px; }
+    .funnel-step {}
+    .funnel-bar-wrap {
+      background:var(--bg3); border-radius:7px;
+      overflow:hidden; height:46px; position:relative;
+    }
+    .funnel-fill {
+      height:100%; border-radius:7px;
+      transition:width .7s cubic-bezier(.4,0,.2,1);
+      min-width:4%;
+    }
+    .funnel-lbl {
+      position:absolute; left:14px; top:50%; transform:translateY(-50%);
+      font-size:12px; font-weight:600; color:rgba(255,255,255,.85); z-index:1;
+      text-shadow:0 1px 3px rgba(0,0,0,.4);
+    }
+    .funnel-val {
+      position:absolute; right:14px; top:50%; transform:translateY(-50%);
+      font-family:'Playfair Display',serif;
+      font-size:17px; font-weight:700; color:#fff; z-index:1;
+      text-shadow:0 1px 3px rgba(0,0,0,.4);
+    }
+    .funnel-rate { font-size:11px; color:var(--text-muted); margin-top:3px; padding-left:4px; }
+
+    /* ── Lead quality ───────────────────────────────────────────────────── */
+    .qlty-rows { display:flex; flex-direction:column; gap:13px; }
+    .qlty-row  { display:flex; align-items:center; gap:12px; }
+    .qlty-lbl  { width:96px; font-size:12px; color:var(--text-muted); flex-shrink:0; }
+    .qlty-track { flex:1; background:var(--bg3); border-radius:4px; height:7px; overflow:hidden; }
+    .qlty-fill  { height:100%; border-radius:4px; transition:width .7s cubic-bezier(.4,0,.2,1); }
+    .qlty-num  {
+      width:40px; text-align:right; flex-shrink:0;
+      font-family:'Playfair Display',serif;
+      font-size:14px; font-weight:600;
+    }
+
+    /* ── Campaign table ─────────────────────────────────────────────────── */
+    .camp-table { width:100%; border-collapse:collapse; }
+    .camp-table th {
+      font-size:10px; font-weight:700;
+      text-transform:uppercase; letter-spacing:.08em;
+      color:var(--text-muted); padding:8px 12px;
+      text-align:left; border-bottom:1px solid var(--border);
+    }
+    .camp-table td {
+      padding:10px 12px; font-size:13px; color:var(--text);
+      border-bottom:1px solid rgba(201,168,76,.05);
+      transition:background .15s;
+    }
+    .camp-table tr:last-child td { border-bottom:none; }
+    .camp-table tbody tr:hover td { background:var(--bg3); }
+    .camp-dot { display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:8px; vertical-align:middle; }
+    .num-cell { font-family:'Playfair Display',serif; font-size:14px; }
+
+    /* ── AI Analysis ────────────────────────────────────────────────────── */
+    .ai-card {
+      background:var(--bg2);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:26px;
+    }
+    .ai-hdr {
+      display:flex; align-items:center;
+      justify-content:space-between; margin-bottom:18px; gap:12px;
+    }
+    .ai-hdr-left { display:flex; align-items:center; gap:10px; }
+    .ai-hdr-title {
+      font-family:'Playfair Display',serif;
+      font-size:17px; font-weight:600;
+    }
+    .ai-badge {
+      background:var(--gold-bg);
+      border:1px solid rgba(201,168,76,.4);
+      color:var(--gold);
+      font-size:9px; font-weight:700;
+      text-transform:uppercase; letter-spacing:.12em;
+      padding:2px 8px; border-radius:4px;
+    }
+    .ai-obs-list { display:flex; flex-direction:column; gap:11px; }
+    .ai-obs {
+      display:flex; gap:14px;
+      background:var(--bg3); border-radius:9px;
+      padding:14px 16px;
+      border-left:2px solid var(--gold);
+    }
+    .ai-obs-n {
+      font-family:'Playfair Display',serif;
+      font-size:20px; font-weight:700;
+      color:var(--gold-dim); flex-shrink:0; line-height:1.3;
+    }
+    .ai-obs-txt { font-size:13px; color:var(--text-dim); line-height:1.65; }
+    .ai-key-input {
+      background:var(--bg3); border:1px solid var(--border);
+      border-radius:7px; padding:7px 12px;
+      color:var(--text); font-family:'DM Sans',sans-serif; font-size:12px;
+      width:260px; outline:none; transition:border-color .2s;
+    }
+    .ai-key-input:focus { border-color:var(--border-h); }
+    .ai-key-input::placeholder { color:var(--text-muted); }
+
+    /* ── Spinner / Loading ──────────────────────────────────────────────── */
+    .spinner {
+      width:18px; height:18px;
+      border:2px solid var(--border);
+      border-top-color:var(--gold);
+      border-radius:50%;
+      animation:spin .65s linear infinite;
+      flex-shrink:0;
+    }
+    .loading-page {
+      flex:1; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; gap:16px; padding:80px;
+    }
+    .loading-big { width:38px; height:38px; border-width:3px; }
+    .loading-txt { font-size:14px; color:var(--text-muted); }
+
+    .skeleton {
+      background:linear-gradient(90deg,var(--bg3) 25%,var(--bg4) 50%,var(--bg3) 75%);
+      background-size:200% 100%;
+      animation:shimmer 1.4s ease infinite;
+      border-radius:7px;
+    }
+
+    /* ── Empty / Error ──────────────────────────────────────────────────── */
+    .empty { padding:38px; text-align:center; color:var(--text-muted); font-size:13px; }
+    .err-page {
+      flex:1; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; gap:10px; padding:60px;
+      text-align:center;
+    }
+    .err-icon { font-size:36px; color:var(--danger); }
+    .err-msg { font-weight:600; font-size:15px; color:var(--danger); }
+    .err-sub { font-size:13px; color:var(--text-muted); max-width:420px; }
+
+    /* ── Tooltip custom ─────────────────────────────────────────────────── */
+    .custom-tooltip {
+      background:var(--bg3);
+      border:1px solid var(--border-h);
+      border-radius:9px;
+      padding:10px 14px;
+      font-size:12px;
+    }
+    .tt-label { color:var(--text); font-weight:600; margin-bottom:6px; }
+    .tt-row { display:flex; align-items:center; gap:8px; color:var(--text-dim); margin-top:3px; }
+    .tt-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+
+    /* ── Footer ─────────────────────────────────────────────────────────── */
+    .footer {
+      border-top:1px solid var(--border);
+      padding:14px 36px;
+      text-align:center;
+      color:var(--text-muted);
+      font-size:10.5px;
+      letter-spacing:.05em;
+    }
+
+    /* ── Print ──────────────────────────────────────────────────────────── */
+    @media print {
+      .hdr-actions, .btn, .month-bar, .ai-card .btn, .ai-key-wrap { display:none !important; }
+      .hdr { position:relative; backdrop-filter:none; background:white; border-color:#ddd; }
+      .logo-text, .mkt-tab, .sec-title, .kpi-value { color:#111 !important; }
+      .kpi-label, .text-muted, .kpi-prev { color:#555 !important; }
+      body { background:white; color:#111; }
+      .kpi-card, .chart-card, .ai-card, .camp-table th {
+        background:white !important; border-color:#ddd !important;
+      }
+      .camp-table td { border-color:#eee !important; }
+      .funnel-bar-wrap, .qlty-track { background:#f0f0f0 !important; }
+      .ai-obs { background:#f8f8f8 !important; }
+      .section { break-inside:avoid; }
+    }
+
+    /* ── Responsive ─────────────────────────────────────────────────────── */
+    @media (max-width:960px) {
+      .hdr { padding:0 16px; }
+      .main { padding:18px 16px; }
+      .two-col, .three-col { grid-template-columns:1fr; }
+      .hdr-inner { flex-wrap:wrap; height:auto; padding:10px 0; gap:10px; }
+    }
+    @media (max-width:640px) {
+      .kpi-grid { grid-template-columns:repeat(2,1fr); }
+      .mkt-tab { padding:5px 11px; font-size:12px; }
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+/* ─── Globals ─────────────────────────────────────────────────────────────── */
+const { useState, useEffect, useCallback, useMemo, useRef } = React;
+const {
+  LineChart, Line, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip,
+  Legend, ResponsiveContainer,
+} = Recharts;
+
+/* ─── Constants ───────────────────────────────────────────────────────────── */
+const SHEET_ID = '10L-7Bygcdv0U0xmAqoL2_6_ialN144xbsR9MBa58Xnw';
+
+const MARKETS = [
+  { id:'es', label:'España',  sheet:'kpis ESPAÑA',  color:'#c9a84c' },
+  { id:'it', label:'Italia',  sheet:'kpis ITALIA',  color:'#4a90d9' },
+  { id:'fr', label:'Francia', sheet:'kpis FRANCIA', color:'#4caf85' },
+  { id:'ro', label:'Rumanía', sheet:'kpis RUMANIA', color:'#e07a3a' },
+];
+
+/* ─── Module-level cache (persists between tab switches) ─────────────────── */
+const CACHE = new Map();
+
+/* ─── Formatters ──────────────────────────────────────────────────────────── */
+const fmt = {
+  num:  v => v == null ? '—' : Number(v).toLocaleString('es-ES'),
+  dec:  (v, d=2) => v == null ? '—' : Number(v).toLocaleString('es-ES', { maximumFractionDigits: d }),
+  pct:  v => v == null ? '—' : `${(Number(v)*100).toFixed(1)}%`,
+  eur:  v => v == null ? '—' : `€${Number(v).toLocaleString('es-ES', { minimumFractionDigits:2, maximumFractionDigits:2 })}`,
+  dur:  v => {
+    if (v == null) return '—';
+    const s = Math.round(Number(v));
+    const m = Math.floor(s/60), r = s%60;
+    return `${m}m ${r < 10 ? '0' : ''}${r}s`;
+  },
+  rawNum: v => v == null ? 0 : Number(v) || 0,
+};
+
+function pctChange(cur, prv) {
+  if (prv == null || prv === 0 || cur == null) return null;
+  return ((cur - prv) / Math.abs(prv)) * 100;
+}
+
+/* ─── Data helpers ────────────────────────────────────────────────────────── */
+function sheetUrl(name) {
+  return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(name)}`;
+}
+
+function parseGviz(raw) {
+  const match = raw.match(/google\.visualization\.Query\.setResponse\(([\s\S]*?)\);\s*$/);
+  if (!match) throw new Error('Formato de respuesta inesperado');
+  const json = JSON.parse(match[1]);
+  const rows = json.table?.rows || [];
+  return rows.map(row => {
+    const c = row.c || [];
+    const v = i => c[i]?.v ?? null;
+    const f = i => { const x = c[i]; return x?.f ?? (x?.v != null ? String(x.v) : null); };
+    const n = i => { const x = c[i]?.v; return x != null ? Number(x) : null; };
+    const mesRaw = f(0) || v(0);
+    if (!mesRaw) return null;
+    const campaña = String(v(1) || '').trim();
+    return {
+      mes:          String(mesRaw).trim(),
+      campaña,
+      isTotal:      campaña.toUpperCase().includes('TOTAL'),
+      // GA4
+      sesiones:     n(2),  usuarios:    n(3),  eventos:    n(4),
+      tasaRebote:   n(5),  duracion:    n(6),
+      // Ads
+      clicsAds:     n(7),  ctr:         n(8),  cpcMedio:   n(9),
+      inversion:    n(10), conversiones:n(11), cpl:        n(12),
+      // Leads funnel
+      leadsTotales: n(13), infoEnviada: n(14), muestras:   n(15),
+      convertidos:  n(16), interesadosPL:n(17),
+      // Quality
+      exploratorio: n(18), viable:      n(19),
+      caliente:     n(20), noViable:    n(21),
+    };
+  }).filter(Boolean);
+}
+
+function groupByMonth(rows) {
+  const map = new Map();
+  rows.forEach(r => {
+    if (!map.has(r.mes)) map.set(r.mes, { total: null, campaigns: [] });
+    const g = map.get(r.mes);
+    if (r.isTotal) g.total = r;
+    else if (r.campaña) g.campaigns.push(r);
+  });
+  return map;
+}
+
+/* ─── useSheetData hook ───────────────────────────────────────────────────── */
+function useSheetData(sheetName) {
+  const [state, setState] = useState(() => {
+    if (CACHE.has(sheetName)) return { data: CACHE.get(sheetName), loading: false, error: null };
+    return { data: null, loading: true, error: null };
+  });
+  const abortRef = useRef(null);
+
+  useEffect(() => {
+    if (CACHE.has(sheetName)) {
+      setState({ data: CACHE.get(sheetName), loading: false, error: null });
+      return;
+    }
+    if (abortRef.current) abortRef.current.abort();
+    abortRef.current = new AbortController();
+    setState({ data: null, loading: true, error: null });
+
+    fetch(sheetUrl(sheetName), { signal: abortRef.current.signal })
+      .then(r => r.text())
+      .then(txt => {
+        const rows = parseGviz(txt);
+        const grouped = groupByMonth(rows);
+        CACHE.set(sheetName, grouped);
+        setState({ data: grouped, loading: false, error: null });
+      })
+      .catch(err => {
+        if (err.name !== 'AbortError')
+          setState({ data: null, loading: false, error: err.message });
+      });
+
+    return () => { if (abortRef.current) abortRef.current.abort(); };
+  }, [sheetName]);
+
+  return state;
+}
+
+/* ─── GrowthBadge ─────────────────────────────────────────────────────────── */
+function GrowthBadge({ current, previous, invert = false }) {
+  const pct = pctChange(current, previous);
+  if (pct === null) return null;
+  const better = invert ? pct < 0 : pct > 0;
+  const worse  = invert ? pct > 0 : pct < 0;
+  const cls = better ? 'gbadge gbadge-pos' : worse ? 'gbadge gbadge-neg' : 'gbadge gbadge-neu';
+  const arrow = pct > 0.05 ? '↑' : pct < -0.05 ? '↓' : '→';
+  return (
+    <span className={cls}>{arrow} {Math.abs(pct).toFixed(1)}%</span>
+  );
+}
+
+/* ─── KPICard ─────────────────────────────────────────────────────────────── */
+function KPICard({ label, value, prev, format='num', invert=false, color, delay=0 }) {
+  const fmtV = v => {
+    if (v == null) return '—';
+    switch (format) {
+      case 'eur': return fmt.eur(v);
+      case 'pct': return fmt.pct(v);
+      case 'dur': return fmt.dur(v);
+      case 'dec': return fmt.dec(v);
+      default:    return fmt.num(v);
+    }
+  };
+  return (
+    <div className="kpi-card fade-up" style={{ animationDelay: `${delay}ms` }}>
+      <div className="kpi-top-border" style={{ background: color }} />
+      <div className="kpi-label">{label}</div>
+      <div className="kpi-value" style={{ color }}>{fmtV(value)}</div>
+      <div className="kpi-footer">
+        <GrowthBadge current={value} previous={prev} invert={invert} />
+        {prev != null && <span className="kpi-prev">vs {fmtV(prev)}</span>}
+      </div>
+    </div>
+  );
+}
+
+/* ─── ConversionFunnel ────────────────────────────────────────────────────── */
+function ConversionFunnel({ data, color }) {
+  if (!data) return <div className="empty">Sin datos de conversión</div>;
+  const steps = [
+    { label:'Leads Totales',  value: data.leadsTotales },
+    { label:'Info Enviada',   value: data.infoEnviada  },
+    { label:'Muestras',       value: data.muestras     },
+    { label:'Convertidos',    value: data.convertidos  },
+  ];
+  const base = fmt.rawNum(steps[0].value) || 1;
+  const hexToRgba = (hex, a) => {
+    const r = parseInt(hex.slice(1,3),16);
+    const g = parseInt(hex.slice(3,5),16);
+    const b = parseInt(hex.slice(5,7),16);
+    return `rgba(${r},${g},${b},${a})`;
+  };
+  return (
+    <div className="funnel">
+      {steps.map((s, i) => {
+        const val   = fmt.rawNum(s.value);
+        const width = Math.max(12, (val / base) * 100);
+        const alpha = 1 - i * 0.18;
+        const bg    = hexToRgba(color, alpha);
+        const rate  = i > 0 && base > 0 ? (val / base * 100).toFixed(1) : null;
+        return (
+          <div key={i} className="funnel-step fade-up" style={{ animationDelay:`${i*70}ms` }}>
+            <div className="funnel-bar-wrap">
+              <div className="funnel-fill" style={{ width:`${width}%`, background:bg }} />
+              <span className="funnel-lbl">{s.label}</span>
+              <span className="funnel-val">{fmt.num(s.value)}</span>
+            </div>
+            {rate !== null && (
+              <div className="funnel-rate">{rate}% sobre leads totales</div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ─── LeadQuality ─────────────────────────────────────────────────────────── */
+function LeadQuality({ data }) {
+  if (!data) return <div className="empty">Sin datos de calidad</div>;
+  const items = [
+    { label:'Caliente',     value: data.caliente,     color:'#e05a5a' },
+    { label:'Viable',       value: data.viable,       color:'#4caf85' },
+    { label:'Exploratorio', value: data.exploratorio, color:'#f0a040' },
+    { label:'No viable',    value: data.noViable,     color:'#6b6b84' },
+  ];
+  const max = Math.max(...items.map(i => fmt.rawNum(i.value)), 1);
+  return (
+    <div className="qlty-rows">
+      {items.map(it => (
+        <div key={it.label} className="qlty-row">
+          <div className="qlty-lbl">{it.label}</div>
+          <div className="qlty-track">
+            <div
+              className="qlty-fill"
+              style={{ width:`${(fmt.rawNum(it.value)/max)*100}%`, background:it.color }}
+            />
+          </div>
+          <div className="qlty-num" style={{ color:it.color }}>{fmt.num(it.value)}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ─── CampaignBreakdown ───────────────────────────────────────────────────── */
+function CampaignBreakdown({ campaigns, color }) {
+  if (!campaigns || !campaigns.length)
+    return <div className="empty">No hay datos de campaña para este mes</div>;
+
+  const totalInv   = campaigns.reduce((s,c)=>s+fmt.rawNum(c.inversion),0);
+  const totalClics = campaigns.reduce((s,c)=>s+fmt.rawNum(c.clicsAds),0);
+
+  return (
+    <div style={{ overflowX:'auto' }}>
+      <table className="camp-table">
+        <thead>
+          <tr>
+            <th>Campaña</th>
+            <th>Clics</th>
+            <th>CTR</th>
+            <th>CPC</th>
+            <th>Inversión</th>
+            <th>Conv.</th>
+            <th>CPL</th>
+          </tr>
+        </thead>
+        <tbody>
+          {campaigns.map((c,i) => (
+            <tr key={i}>
+              <td>
+                <span className="camp-dot" style={{ background:color }} />
+                {c.campaña}
+              </td>
+              <td className="num-cell">{fmt.num(c.clicsAds)}</td>
+              <td className="num-cell">{fmt.pct(c.ctr)}</td>
+              <td className="num-cell">{fmt.eur(c.cpcMedio)}</td>
+              <td className="num-cell" style={{ color, fontWeight:700 }}>{fmt.eur(c.inversion)}</td>
+              <td className="num-cell">{fmt.num(c.conversiones)}</td>
+              <td className="num-cell">{fmt.eur(c.cpl)}</td>
+            </tr>
+          ))}
+          {campaigns.length > 1 && (
+            <tr style={{ borderTop:`1px solid var(--border)` }}>
+              <td style={{ color:'var(--text-dim)', fontWeight:600, fontSize:11 }}>TOTAL</td>
+              <td className="num-cell" style={{ fontWeight:600 }}>{fmt.num(totalClics)}</td>
+              <td>—</td><td>—</td>
+              <td className="num-cell" style={{ color, fontWeight:700 }}>{fmt.eur(totalInv)}</td>
+              <td>—</td><td>—</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/* ─── Custom Tooltip ──────────────────────────────────────────────────────── */
+function ChartTooltip({ active, payload, label }) {
+  if (!active || !payload || !payload.length) return null;
+  return (
+    <div className="custom-tooltip">
+      <div className="tt-label">{label}</div>
+      {payload.map((p, i) => (
+        <div key={i} className="tt-row">
+          <div className="tt-dot" style={{ background:p.color }} />
+          <span style={{ color:'var(--text-dim)' }}>{p.name}:</span>
+          <span style={{ color:'var(--text)', fontWeight:600 }}>
+            {p.name === 'Inversión (€)' ? `€${fmt.dec(p.value,0)}` : fmt.num(p.value)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ─── HistoryCharts ───────────────────────────────────────────────────────── */
+function HistoryCharts({ monthsData, months, color }) {
+  const chartData = months.map(mes => {
+    const g   = monthsData.get(mes);
+    const tot = g?.total;
+    const inv = (g?.campaigns || []).reduce((s,c)=>s+fmt.rawNum(c.inversion),0)
+                || fmt.rawNum(tot?.inversion);
+    const shortMes = mes.length > 9 ? mes.slice(0,3) : mes;
+    return {
+      mes: shortMes,
+      Leads:         fmt.rawNum(tot?.leadsTotales),
+      Convertidos:   fmt.rawNum(tot?.convertidos),
+      'Inversión (€)': inv,
+    };
+  });
+
+  const axisStyle = { fill:'#6b6b84', fontSize:11 };
+
+  return (
+    <div className="two-col">
+      <div className="chart-card">
+        <div className="chart-title">Evolución Leads &amp; Convertidos</div>
+        <ResponsiveContainer width="100%" height={210}>
+          <LineChart data={chartData} margin={{ top:4, right:14, bottom:0, left:-10 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(201,168,76,.07)" />
+            <XAxis dataKey="mes" tick={axisStyle} axisLine={false} tickLine={false} />
+            <YAxis tick={axisStyle} axisLine={false} tickLine={false} />
+            <Tooltip content={<ChartTooltip />} />
+            <Legend iconType="circle" iconSize={7} wrapperStyle={{ fontSize:12, color:'#9898b2' }} />
+            <Line type="monotone" dataKey="Leads"       stroke={color}     strokeWidth={2} dot={{ r:3, fill:color }}     activeDot={{ r:5 }} />
+            <Line type="monotone" dataKey="Convertidos" stroke="#4caf85"   strokeWidth={2} dot={{ r:3, fill:'#4caf85' }} activeDot={{ r:5 }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="chart-card">
+        <div className="chart-title">Inversión en Ads (€)</div>
+        <ResponsiveContainer width="100%" height={210}>
+          <BarChart data={chartData} margin={{ top:4, right:14, bottom:0, left:-10 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(201,168,76,.07)" />
+            <XAxis dataKey="mes" tick={axisStyle} axisLine={false} tickLine={false} />
+            <YAxis tick={axisStyle} axisLine={false} tickLine={false} />
+            <Tooltip content={<ChartTooltip />} />
+            <Bar dataKey="Inversión (€)" fill="#4a90d9" radius={[5,5,0,0]} maxBarSize={56} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+/* ─── AIAnalysis ──────────────────────────────────────────────────────────── */
+function AIAnalysis({ monthsData, month, marketLabel }) {
+  const [result,  setResult]  = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState(null);
+  const [apiKey,  setApiKey]  = useState('');
+  const abortRef = useRef(null);
+
+  const buildPrompt = useCallback(() => {
+    if (!monthsData || !month) return '';
+    const g = monthsData.get(month);
+    const t = g?.total;
+    const campaigns = g?.campaigns || [];
+    const campTxt = campaigns.length
+      ? '\nCAMPAÑAS ADS:\n' + campaigns.map(c =>
+          `  • ${c.campaña}: ${fmt.num(c.clicsAds)} clics, CTR ${fmt.pct(c.ctr)}, inversión ${fmt.eur(c.inversion)}, CPL ${fmt.eur(c.cpl)}`
+        ).join('\n')
+      : '';
+    return `Eres un analista de marketing digital especialista en sector farmacéutico para Natu Laboratories.
+
+Analiza los KPIs del mercado ${marketLabel} (mes: ${month}) y genera exactamente 3-4 observaciones accionables en español. Sé específico, orientado a la acción y usa los datos concretos. Evita frases genéricas.
+
+DATOS:
+— Sesiones GA4: ${fmt.num(t?.sesiones)} | Usuarios: ${fmt.num(t?.usuarios)}
+— Tasa rebote: ${fmt.pct(t?.tasaRebote)} | Duración media: ${fmt.dur(t?.duracion)}
+— Leads totales: ${fmt.num(t?.leadsTotales)} | Info enviada: ${fmt.num(t?.infoEnviada)}
+— Muestras: ${fmt.num(t?.muestras)} | Convertidos a negocio: ${fmt.num(t?.convertidos)}
+— Interesados PL: ${fmt.num(t?.interesadosPL)}
+— Calidad leads → Caliente: ${fmt.num(t?.caliente)}, Viable: ${fmt.num(t?.viable)}, Exploratorio: ${fmt.num(t?.exploratorio)}, No viable: ${fmt.num(t?.noViable)}${campTxt}
+
+Responde ÚNICAMENTE con las observaciones numeradas (1. 2. 3. …), sin encabezado ni conclusión.`;
+  }, [monthsData, month, marketLabel]);
+
+  const run = useCallback(async () => {
+    if (abortRef.current) abortRef.current.abort();
+    abortRef.current = new AbortController();
+    setLoading(true); setError(null); setResult(null);
+    try {
+      const headers = {
+        'Content-Type':    'application/json',
+        'anthropic-version': '2023-06-01',
+      };
+      if (apiKey.trim()) headers['x-api-key'] = apiKey.trim();
+
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          model:      'claude-sonnet-4-20250514',
+          max_tokens: 700,
+          messages:   [{ role:'user', content: buildPrompt() }],
+        }),
+        signal: abortRef.current.signal,
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error?.message || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      const text = data.content?.[0]?.text || '';
+      const obs  = text
+        .split(/\n(?=\d+[\.\-]\s)/)
+        .map(s => s.replace(/^\d+[\.\-]\s*/, '').trim())
+        .filter(Boolean);
+      setResult(obs);
+    } catch(err) {
+      if (err.name !== 'AbortError') setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [buildPrompt, apiKey]);
+
+  return (
+    <div className="ai-card">
+      <div className="ai-hdr">
+        <div className="ai-hdr-left">
+          <span style={{ color:'var(--gold)', fontSize:18 }}>✦</span>
+          <span className="ai-hdr-title">Análisis IA</span>
+          <span className="ai-badge">Claude</span>
+        </div>
+        <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
+          <div className="ai-key-wrap" style={{ display:'flex', alignItems:'center', gap:7 }}>
+            <input
+              className="ai-key-input"
+              type="password"
+              placeholder="API key (opcional si usas proxy)"
+              value={apiKey}
+              onChange={e => setApiKey(e.target.value)}
+            />
+          </div>
+          <button
+            className="btn btn-gold"
+            onClick={run}
+            disabled={loading || !month}
+          >
+            {loading
+              ? <><span className="spinner" style={{width:13,height:13}} /> Analizando…</>
+              : '▶ Generar análisis'}
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div style={{
+          padding:'12px 14px', borderRadius:8, marginBottom:12,
+          background:'rgba(224,90,90,.1)', color:'#e05a5a', fontSize:13,
+        }}>
+          ⚠ {error} — Asegúrate de introducir una API key válida o de usar a través del proxy de Claude.ai.
+        </div>
+      )}
+
+      {loading && !result && (
+        <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+          {[1,2,3].map(i => (
+            <div key={i} className="skeleton" style={{ height:60, animationDelay:`${i*.15}s` }} />
+          ))}
+        </div>
+      )}
+
+      {result && (
+        <div className="ai-obs-list fade-in">
+          {result.map((obs, i) => (
+            <div key={i} className="ai-obs">
+              <div className="ai-obs-n">{i+1}</div>
+              <div className="ai-obs-txt">{obs}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!loading && !result && !error && (
+        <div className="empty" style={{ padding:'18px 0 0' }}>
+          Pulsa "Generar análisis" para obtener observaciones accionables sobre los KPIs del mes seleccionado.
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── MarketDashboard ─────────────────────────────────────────────────────── */
+function MarketDashboard({ market }) {
+  const { data, loading, error } = useSheetData(market.sheet);
+  const months = useMemo(() => (data ? Array.from(data.keys()) : []), [data]);
+
+  const [selMonth, setSelMonth] = useState(null);
+
+  // auto-select last month
+  useEffect(() => {
+    if (months.length) setSelMonth(months[months.length - 1]);
+  }, [months]);
+
+  const curGroup  = useMemo(() => data && selMonth ? data.get(selMonth) : null, [data, selMonth]);
+  const prevMonthKey = useMemo(() => {
+    if (!months.length || !selMonth) return null;
+    const i = months.indexOf(selMonth);
+    return i > 0 ? months[i-1] : null;
+  }, [months, selMonth]);
+  const prevGroup = useMemo(() => data && prevMonthKey ? data.get(prevMonthKey) : null, [data, prevMonthKey]);
+
+  const cur  = curGroup?.total  ?? null;
+  const prev = prevGroup?.total ?? null;
+  const campaigns     = curGroup?.campaigns  || [];
+  const prevCampaigns = prevGroup?.campaigns || [];
+
+  const totalInv     = useMemo(() => campaigns.reduce((s,c)=>s+fmt.rawNum(c.inversion),0)     || fmt.rawNum(cur?.inversion),  [campaigns, cur]);
+  const prevTotalInv = useMemo(() => prevCampaigns.reduce((s,c)=>s+fmt.rawNum(c.inversion),0) || fmt.rawNum(prev?.inversion), [prevCampaigns, prev]);
+
+  const totalClics     = useMemo(() => campaigns.reduce((s,c)=>s+fmt.rawNum(c.clicsAds),0)     || fmt.rawNum(cur?.clicsAds),  [campaigns, cur]);
+  const prevTotalClics = useMemo(() => prevCampaigns.reduce((s,c)=>s+fmt.rawNum(c.clicsAds),0) || fmt.rawNum(prev?.clicsAds), [prevCampaigns, prev]);
+
+  // Email body
+  const mailHref = useMemo(() => {
+    if (!cur) return '#';
+    const lines = [
+      `KPI Dashboard — Natu Laboratories · ${market.label} · ${selMonth}`,
+      '',
+      '== TRÁFICO WEB ==',
+      `Sesiones:      ${fmt.num(cur.sesiones)}`,
+      `Usuarios:      ${fmt.num(cur.usuarios)}`,
+      `Tasa rebote:   ${fmt.pct(cur.tasaRebote)}`,
+      `Duración:      ${fmt.dur(cur.duracion)}`,
+      '',
+      '== LEADS & CONVERSIÓN ==',
+      `Leads totales: ${fmt.num(cur.leadsTotales)}`,
+      `Info enviada:  ${fmt.num(cur.infoEnviada)}`,
+      `Muestras:      ${fmt.num(cur.muestras)}`,
+      `Convertidos:   ${fmt.num(cur.convertidos)}`,
+      '',
+      '== INVERSIÓN ADS ==',
+      `Inversión:     ${fmt.eur(totalInv)}`,
+      `Clics:         ${fmt.num(totalClics)}`,
+      `CPC medio:     ${fmt.eur(cur.cpcMedio)}`,
+    ];
+    return `mailto:?subject=${encodeURIComponent(`KPI ${market.label} · ${selMonth}`)}&body=${encodeURIComponent(lines.join('\n'))}`;
+  }, [cur, market.label, selMonth, totalInv, totalClics]);
+
+  const c = market.color;
+
+  /* ── Render states ── */
+  if (loading) return (
+    <div className="loading-page">
+      <div className="spinner loading-big" style={{ borderTopColor:c }} />
+      <div className="loading-txt">Cargando datos de {market.label}…</div>
+    </div>
+  );
+
+  if (error) return (
+    <div className="err-page">
+      <div className="err-icon">⚠</div>
+      <div className="err-msg">Error al cargar datos</div>
+      <div className="err-sub">{error}</div>
+      <div className="err-sub" style={{ marginTop:6 }}>
+        Verifica que la hoja "{market.sheet}" esté compartida públicamente en Google Sheets.
+      </div>
+    </div>
+  );
+
+  if (!data || !months.length) return (
+    <div className="empty" style={{ paddingTop:60 }}>
+      No se encontraron datos en la hoja "{market.sheet}"
+    </div>
+  );
+
+  return (
+    <div>
+      {/* Month bar */}
+      <div className="month-bar">
+        <span className="month-label">Mes</span>
+        {months.map(m => (
+          <button
+            key={m}
+            className={`month-pill ${selMonth===m ? 'active':''}`}
+            style={selMonth===m ? { background:c, borderColor:c, color:'#0a0a0f', fontWeight:700 } : {}}
+            onClick={() => setSelMonth(m)}
+          >{m}</button>
+        ))}
+        <div style={{ flex:1 }} />
+        <a href={mailHref} className="btn" title="Enviar resumen por email">
+          ✉ Enviar resumen
+        </a>
+      </div>
+
+      {/* ── Tráfico ── */}
+      <div className="section">
+        <div className="sec-hdr">
+          <div className="sec-title">Tráfico &amp; Comportamiento</div>
+          <div className="sec-rule" />
+          {selMonth && <div className="sec-sub">{selMonth}</div>}
+        </div>
+        <div className="kpi-grid">
+          <KPICard label="Sesiones GA4"  value={cur?.sesiones}   prev={prev?.sesiones}   color={c} delay={0}   />
+          <KPICard label="Usuarios"       value={cur?.usuarios}    prev={prev?.usuarios}    color={c} delay={60}  />
+          <KPICard label="Tasa de Rebote" value={cur?.tasaRebote} prev={prev?.tasaRebote}  color={c} delay={120} format="pct" invert />
+          <KPICard label="Duración Media" value={cur?.duracion}   prev={prev?.duracion}   color={c} delay={180} format="dur" />
+        </div>
+      </div>
+
+      {/* ── Leads & Conversión ── */}
+      <div className="section">
+        <div className="sec-hdr">
+          <div className="sec-title">Leads &amp; Conversión</div>
+          <div className="sec-rule" />
+        </div>
+        <div className="kpi-grid">
+          <KPICard label="Leads Totales"   value={cur?.leadsTotales}   prev={prev?.leadsTotales}   color={c} delay={0}   />
+          <KPICard label="Info Enviada"     value={cur?.infoEnviada}    prev={prev?.infoEnviada}    color={c} delay={60}  />
+          <KPICard label="Muestras"         value={cur?.muestras}       prev={prev?.muestras}       color={c} delay={120} />
+          <KPICard label="Convertidos"      value={cur?.convertidos}    prev={prev?.convertidos}    color={c} delay={180} />
+          <KPICard label="Interesados PL"   value={cur?.interesadosPL}  prev={prev?.interesadosPL}  color={c} delay={240} />
+        </div>
+      </div>
+
+      {/* ── Inversión ── */}
+      <div className="section">
+        <div className="sec-hdr">
+          <div className="sec-title">Inversión &amp; Ads</div>
+          <div className="sec-rule" />
+        </div>
+        <div className="kpi-grid">
+          <KPICard label="Inversión Ads" value={totalInv || null}     prev={prevTotalInv || null}    color={c} delay={0}   format="eur" />
+          <KPICard label="Clics Ads"     value={totalClics || null}   prev={prevTotalClics || null}   color={c} delay={60}  />
+          <KPICard label="CPC Medio"     value={cur?.cpcMedio}        prev={prev?.cpcMedio}           color={c} delay={120} format="eur" invert />
+          <KPICard label="CPL"           value={cur?.cpl}             prev={prev?.cpl}                color={c} delay={180} format="eur" invert />
+        </div>
+      </div>
+
+      {/* ── Funnel + Quality ── */}
+      <div className="section">
+        <div className="sec-hdr">
+          <div className="sec-title">Embudo de Conversión</div>
+          <div className="sec-rule" />
+        </div>
+        <div className="two-col" style={{ alignItems:'start' }}>
+          <div>
+            <ConversionFunnel data={cur} color={c} />
+          </div>
+          <div className="chart-card">
+            <div className="chart-title">Calidad de Leads</div>
+            <LeadQuality data={cur} color={c} />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Historical charts (only if >1 month) ── */}
+      {months.length > 1 && (
+        <div className="section">
+          <div className="sec-hdr">
+            <div className="sec-title">Evolución Histórica</div>
+            <div className="sec-rule" />
+          </div>
+          <HistoryCharts monthsData={data} months={months} color={c} />
+        </div>
+      )}
+
+      {/* ── Campaign breakdown ── */}
+      <div className="section">
+        <div className="sec-hdr">
+          <div className="sec-title">Desglose por Campaña</div>
+          <div className="sec-rule" />
+        </div>
+        <div className="chart-card">
+          <CampaignBreakdown campaigns={campaigns} color={c} />
+        </div>
+      </div>
+
+      {/* ── AI Analysis ── */}
+      <div className="section">
+        <AIAnalysis monthsData={data} month={selMonth} marketLabel={market.label} />
+      </div>
+    </div>
+  );
+}
+
+/* ─── App ─────────────────────────────────────────────────────────────────── */
+function App() {
+  const [active, setActive] = useState('es');
+  const market = MARKETS.find(m => m.id === active);
+
+  return (
+    <div className="app">
+      {/* Header */}
+      <header className="hdr">
+        <div className="hdr-inner">
+          {/* Logo */}
+          <div className="logo">
+            <div className="logo-mark">N</div>
+            <div>
+              <div className="logo-text">Natu Laboratories</div>
+              <span className="logo-sub">KPI Dashboard</span>
+            </div>
+          </div>
+
+          {/* Market tabs */}
+          <nav className="mkt-tabs">
+            {MARKETS.map(m => (
+              <button
+                key={m.id}
+                className={`mkt-tab ${active===m.id ? 'active':''}`}
+                style={active===m.id ? {
+                  background: `${m.color}16`,
+                  borderColor: m.color,
+                  color: m.color,
+                } : {}}
+                onClick={() => setActive(m.id)}
+              >
+                {m.label}
+              </button>
+            ))}
+          </nav>
+
+          {/* Actions */}
+          <div className="hdr-actions">
+            <button
+              className="btn btn-gold"
+              onClick={() => window.print()}
+              title="Exportar como PDF"
+            >
+              ⎙ Exportar PDF
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main content */}
+      <main className="main">
+        <div key={active} className="fade-in">
+          <MarketDashboard market={market} />
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="footer">
+        Natu Laboratories · KPI Dashboard · {new Date().getFullYear()}
+      </footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
