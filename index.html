@@ -791,7 +791,7 @@ function ConclusionesSection({ market, month, color, color30 }) {
         setAuthErr('Token incorrecto');
       }
     } catch(e) {
-      setAuthErr('Error de conexión');
+      setAuthErr('Error: ' + (e && e.message ? e.message : String(e)));
     } finally { setNet('idle'); }
   }
 
