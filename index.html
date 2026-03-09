@@ -345,17 +345,23 @@ const SHEET_ID = '10L-7Bygcdv0U0xmAqoL2_6_ialN144xbsR9MBa58Xnw';
  *   const ss = SpreadsheetApp.openById(SHEET_ID);
  *   return ss.getSheetByName(TAB) || ss.insertSheet(TAB);
  * }
- * function json(data) {
- *   return ContentService.createTextOutput(JSON.stringify(data))
+ * function respond(data, callback) {
+ *   const str = JSON.stringify(data);
+ *   if (callback) {
+ *     return ContentService.createTextOutput(callback + '(' + str + ')')
+ *       .setMimeType(ContentService.MimeType.JAVASCRIPT);
+ *   }
+ *   return ContentService.createTextOutput(str)
  *     .setMimeType(ContentService.MimeType.JSON);
  * }
  * function doGet(e) {
- *   const p = e.parameter;
+ *   const p  = e.parameter;
+ *   const cb = p.callback || null;
  *   if (p.action === 'validate') {
- *     return json(p.token === TOKEN ? {ok:true} : {ok:false});
+ *     return respond(p.token === TOKEN ? {ok:true} : {ok:false}, cb);
  *   }
  *   if (p.action === 'set') {
- *     if (p.token !== TOKEN) return json({ok:false});
+ *     if (p.token !== TOKEN) return respond({ok:false}, cb);
  *     const sheet = getSheet();
  *     const data  = sheet.getDataRange().getValues();
  *     let found   = false;
@@ -367,13 +373,13 @@ const SHEET_ID = '10L-7Bygcdv0U0xmAqoL2_6_ialN144xbsR9MBa58Xnw';
  *       }
  *     }
  *     if (!found) sheet.appendRow([p.key, p.text, new Date().toLocaleString('es-ES')]);
- *     return json({ok:true});
+ *     return respond({ok:true}, cb);
  *   }
  *   // Default: devuelve todas las conclusiones
  *   const rows = getSheet().getDataRange().getValues();
  *   const out  = {};
  *   rows.forEach(r => { if (r[0]) out[r[0]] = r[1] || ''; });
- *   return json(out);
+ *   return respond(out, cb);
  * }
  * ─────────────────────────────────────────────────────────────────────────
  *
@@ -764,16 +770,24 @@ function ConclusionesSection({ market, month, color, color30 }) {
       });
   }, [rowKey]);
 
-  // GET helper — avoids CORS issues with Apps Script redirects
+  // JSONP helper — bypasses CORS when the file is opened from file:// or any domain
   function scriptCall(params) {
-    params.nc = Date.now(); // cache-bust
-    const url = SCRIPT_URL + '?' + new URLSearchParams(params).toString();
-    return fetch(url).then(function(r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.text().then(function(txt) {
-        try { return JSON.parse(txt); }
-        catch(e) { throw new Error('Respuesta no válida: ' + txt.slice(0, 120)); }
-      });
+    params.nc = Date.now();
+    return new Promise(function(resolve, reject) {
+      const cb = '__gs_' + params.nc;
+      params.callback = cb;
+      const url = SCRIPT_URL + '?' + new URLSearchParams(params).toString();
+      const s = document.createElement('script');
+      const t = setTimeout(function() { cleanup(); reject(new Error('Timeout (10s) — verifica la URL del script')); }, 10000);
+      function cleanup() {
+        clearTimeout(t);
+        delete window[cb];
+        if (s.parentNode) s.parentNode.removeChild(s);
+      }
+      window[cb] = function(data) { cleanup(); resolve(data); };
+      s.onerror   = function()    { cleanup(); reject(new Error('No se pudo cargar el script — verifica la URL y los permisos del deployment')); };
+      s.src = url;
+      document.head.appendChild(s);
     });
   }
 
