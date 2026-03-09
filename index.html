@@ -768,7 +768,13 @@ function ConclusionesSection({ market, month, color, color30 }) {
   function scriptCall(params) {
     params.nc = Date.now(); // cache-bust
     const url = SCRIPT_URL + '?' + new URLSearchParams(params).toString();
-    return fetch(url).then(function(r) { return r.json(); });
+    return fetch(url).then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.text().then(function(txt) {
+        try { return JSON.parse(txt); }
+        catch(e) { throw new Error('Respuesta no válida: ' + txt.slice(0, 120)); }
+      });
+    });
   }
 
   async function doLogin() {
@@ -791,7 +797,7 @@ function ConclusionesSection({ market, month, color, color30 }) {
         setAuthErr('Token incorrecto');
       }
     } catch(e) {
-      setAuthErr('Error de conexión');
+      setAuthErr('Error: ' + (e && e.message ? e.message : String(e)));
     } finally { setNet('idle'); }
   }
 
@@ -875,6 +881,12 @@ function ConclusionesSection({ market, month, color, color30 }) {
             <button className="btn" onClick={closeLogin}>✕</button>
           </div>
           {authErr && <div className="concl-error">{authErr}</div>}
+          {SCRIPT_URL && (
+            <div style={{ fontSize:10, color:'var(--text-mut)', marginTop:4, display:'flex', gap:8, alignItems:'center' }}>
+              <span>Script configurado ✓</span>
+              <a href={SCRIPT_URL} target="_blank" rel="noopener" style={{ color:'inherit', textDecoration:'underline' }}>Probar script ↗</a>
+            </div>
+          )}
           {!SCRIPT_URL && (
             <div style={{ fontSize:10, color:'var(--text-mut)', marginTop:2 }}>
               ⚠ Apps Script no configurado — datos guardados solo en este navegador.
