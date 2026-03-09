@@ -776,7 +776,6 @@ function ConclusionesSection({ market, month, color, color30 }) {
     if (!tk) return;
     setAuthErr('');
     if (!SCRIPT_URL) {
-      // No server: accept any non-empty token (localStorage mode)
       sessionStorage.setItem(SESSION_KEY, tk);
       setIsAdmin(true); setShowLogin(false); setTkInput('');
       return;
