@@ -748,6 +748,7 @@ function ConclusionesSection({ market, month, color, color30 }) {
   const [tkInput,   setTkInput]   = useState('');
   const [authErr,   setAuthErr]   = useState('');
   const [net,       setNet]       = useState('idle'); // idle|loading|saving|saved|error
+  const [fetchErr,  setFetchErr]  = useState('');
 
   // Restore admin session within the tab
   useEffect(function() {
@@ -757,18 +758,47 @@ function ConclusionesSection({ market, month, color, color30 }) {
   // Load conclusions whenever market/month changes
   useEffect(function() {
     if (!rowKey) return;
+    setFetchErr('');
     if (!SCRIPT_URL) {
       setText(localStorage.getItem('natu_cl_' + rowKey) || '');
       return;
     }
     setNet('loading');
     scriptCall({})
-      .then(function(data) { setText(data[rowKey] || ''); setNet('idle'); })
-      .catch(function() {
-        setText(localStorage.getItem('natu_cl_' + rowKey) || '');
+      .then(function(data) {
+        const scriptText = data[rowKey];
+        if (scriptText) {
+          setText(scriptText);
+        } else {
+          // Script OK but key not found — fall back to local cache
+          setText(localStorage.getItem('natu_cl_' + rowKey) || '');
+        }
+        setNet('idle');
+      })
+      .catch(function(err) {
+        const cached = localStorage.getItem('natu_cl_' + rowKey) || '';
+        setText(cached);
+        setFetchErr(err && err.message ? err.message : 'Error al conectar con el script');
         setNet('idle');
       });
   }, [rowKey]);
+
+  function retryLoad() {
+    if (!rowKey || !SCRIPT_URL) return;
+    setFetchErr('');
+    setNet('loading');
+    scriptCall({})
+      .then(function(data) {
+        const scriptText = data[rowKey];
+        setText(scriptText || localStorage.getItem('natu_cl_' + rowKey) || '');
+        setNet('idle');
+      })
+      .catch(function(err) {
+        setText(localStorage.getItem('natu_cl_' + rowKey) || '');
+        setFetchErr(err && err.message ? err.message : 'Error al conectar con el script');
+        setNet('idle');
+      });
+  }
 
   // JSONP helper — bypasses CORS when the file is opened from file:// or any domain
   function scriptCall(params) {
@@ -939,11 +969,23 @@ function ConclusionesSection({ market, month, color, color30 }) {
           ? <div style={{ display:'flex', gap:8, alignItems:'center', color:'var(--text-mut)', fontSize:12 }}>
               <span className="spinner"/> Cargando conclusiones…
             </div>
-          : paragraphs.length > 0
-            ? <div className="concl-content fade-in">
-                {paragraphs.map(function(p, i) { return <div key={i} className="concl-para">{p}</div>; })}
+          : fetchErr
+            ? <div style={{ fontSize:12, color:'var(--red)', display:'flex', flexDirection:'column', gap:6 }}>
+                <span>⚠ No se pudieron cargar las conclusiones del script.</span>
+                <span style={{ color:'var(--text-mut)', fontStyle:'italic' }}>{fetchErr}</span>
+                {paragraphs.length > 0
+                  ? <div className="concl-content fade-in" style={{ marginTop:4 }}>
+                      {paragraphs.map(function(p, i) { return <div key={i} className="concl-para">{p}</div>; })}
+                    </div>
+                  : null
+                }
+                <button className="btn" style={{ alignSelf:'flex-start', marginTop:4 }} onClick={retryLoad}>↺ Reintentar</button>
               </div>
-            : <div className="concl-empty">Sin conclusiones registradas para este período.</div>
+            : paragraphs.length > 0
+              ? <div className="concl-content fade-in">
+                  {paragraphs.map(function(p, i) { return <div key={i} className="concl-para">{p}</div>; })}
+                </div>
+              : <div className="concl-empty">Sin conclusiones registradas para este período.</div>
       )}
     </div>
   );
