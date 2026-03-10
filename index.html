@@ -766,6 +766,9 @@ function ConclusionesSection({ market, month, color, color30 }) {
     setNet('loading');
     scriptCall({})
       .then(function(data) {
+        console.log('[Conclusiones] rowKey buscado:', JSON.stringify(rowKey));
+        console.log('[Conclusiones] claves devueltas por el script:', Object.keys(data));
+        console.log('[Conclusiones] valor encontrado:', data[rowKey]);
         const scriptText = data[rowKey];
         if (scriptText) {
           setText(scriptText);
@@ -776,6 +779,7 @@ function ConclusionesSection({ market, month, color, color30 }) {
         setNet('idle');
       })
       .catch(function(err) {
+        console.error('[Conclusiones] error llamando al script:', err);
         const cached = localStorage.getItem('natu_cl_' + rowKey) || '';
         setText(cached);
         setFetchErr(err && err.message ? err.message : 'Error al conectar con el script');
@@ -808,7 +812,7 @@ function ConclusionesSection({ market, month, color, color30 }) {
       params.callback = cb;
       const url = SCRIPT_URL + '?' + new URLSearchParams(params).toString();
       const s = document.createElement('script');
-      const t = setTimeout(function() { cleanup(); reject(new Error('Timeout (10s) — verifica la URL del script')); }, 10000);
+      const t = setTimeout(function() { cleanup(); reject(new Error('Timeout (20s) — verifica la URL del script')); }, 20000);
       function cleanup() {
         clearTimeout(t);
         delete window[cb];
