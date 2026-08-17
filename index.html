@@ -1109,6 +1109,11 @@ function AnnualSummary({ data, months, market }) {
       </div>
 
       <div className="section">
+        <div className="sec-hdr"><div className="sec-title">Evolución Histórica</div><div className="sec-rule"/></div>
+        <HistoryCharts monthsData={data} months={months} color={c} />
+      </div>
+
+      <div className="section">
         <div className="sec-hdr"><div className="sec-title">Detalle por Mes</div><div className="sec-rule"/></div>
         <div className="chart-card" style={{ overflowX:'auto' }}>
           <table className="year-tbl">
