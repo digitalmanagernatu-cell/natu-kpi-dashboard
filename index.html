@@ -248,6 +248,16 @@
     .concl-para    { font-size:13px; line-height:1.8; color:var(--text-dim); padding:4px 0; }
     .concl-empty   { font-size:12px; color:var(--text-mut); font-style:italic; padding:6px 0; font-weight:500; }
 
+    /* ── Year summary ──────────────────────────────────────────────── */
+    .year-pill { background:var(--bg3); border:1.5px solid var(--border); color:var(--text-dim); border-radius:20px; padding:4px 16px; font-size:11px; font-weight:700; letter-spacing:.04em; cursor:pointer; transition:all .15s; font-family:'Montserrat',sans-serif; flex-shrink:0; }
+    .year-pill:hover { border-color:#bbb; color:var(--text); }
+    .year-tbl { width:100%; border-collapse:collapse; }
+    .year-tbl th { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.09em; color:var(--text-mut); padding:7px 12px; text-align:left; border-bottom:1.5px solid var(--border); white-space:nowrap; }
+    .year-tbl td { padding:9px 12px; font-size:12px; border-bottom:1px solid var(--bg3); white-space:nowrap; }
+    .year-tbl tbody tr:hover td { background:var(--bg3); }
+    .year-tbl .yt-total td { border-top:1.5px solid var(--border); border-bottom:none; font-weight:700; background:var(--bg3); }
+    .yt-month { font-weight:600; color:var(--text); }
+
     /* ── Utility ───────────────────────────────────────────────────── */
     .spinner { width:15px; height:15px; border:2px solid var(--border); border-radius:50%; animation:spin .6s linear infinite; flex-shrink:0; }
     .spinner-lg { width:34px; height:34px; border-width:3px; }
@@ -995,6 +1005,161 @@ function ConclusionesSection({ market, month, color, color30 }) {
   );
 }
 
+/* ── AnnualSummary ───────────────────────────────────────────────────── */
+function AnnualSummary({ data, months, market }) {
+  const c   = market.color;
+  const c30 = market.color30;
+  const c60 = market.color60;
+
+  const acc = useMemo(function() {
+    let sesiones=0, usuarios=0, inversion=0, clics=0, conversiones=0;
+    let leads=0, infoEnv=0, muestras=0, convertidos=0, interesadoPL=0;
+    let exploratorio=0, viable=0, caliente=0, noViable=0;
+    let wRebote=0, wDur=0, wSes=0;
+    months.forEach(function(m) {
+      const g    = data.get(m);
+      const tot  = g ? g.total : null;
+      const caps = g ? g.campaigns : [];
+      const inv  = caps.reduce(function(s,x){ return s+fmt.n(x.inversion); },0) || fmt.n(tot?tot.inversion:null);
+      const cls  = caps.reduce(function(s,x){ return s+fmt.n(x.clicsAds); },0)  || fmt.n(tot?tot.clicsAds:null);
+      inversion += inv; clics += cls;
+      if (tot) {
+        const ses = fmt.n(tot.sesiones);
+        sesiones     += ses;
+        usuarios     += fmt.n(tot.usuarios);
+        conversiones += fmt.n(tot.conversiones);
+        leads        += fmt.n(tot.leadsTotales);
+        infoEnv      += fmt.n(tot.infoEnviada);
+        muestras     += fmt.n(tot.muestras);
+        convertidos  += fmt.n(tot.convertidos);
+        interesadoPL += fmt.n(tot.interesadosPL);
+        exploratorio += fmt.n(tot.exploratorio);
+        viable       += fmt.n(tot.viable);
+        caliente     += fmt.n(tot.caliente);
+        noViable     += fmt.n(tot.noViable);
+        wRebote += fmt.n(tot.tasaRebote) * ses;
+        wDur    += fmt.n(tot.duracion)   * ses;
+        wSes    += ses;
+      }
+    });
+    return {
+      sesiones, usuarios,
+      tasaRebote: wSes > 0 ? wRebote/wSes : null,
+      duracion:   wSes > 0 ? wDur/wSes    : null,
+      inversion, clics,
+      cpcMedio:    clics > 0        ? inversion/clics        : null,
+      conversiones,
+      cpl:         conversiones > 0 ? inversion/conversiones : null,
+      leads, infoEnv, muestras, convertidos, interesadoPL,
+      exploratorio, viable, caliente, noViable,
+    };
+  }, [data, months]);
+
+  const rangeLabel = months.length > 0 ? months[0] + ' — ' + months[months.length-1] : '';
+
+  return (
+    <div>
+      <div className="section">
+        <div className="sec-hdr">
+          <div className="sec-title">Tráfico &amp; Comportamiento</div>
+          <div className="sec-rule"/>
+          <div className="sec-sub">acumulado · {rangeLabel}</div>
+        </div>
+        <div className="kpi-grid">
+          <KPICard label="Sesiones"      value={acc.sesiones}   color={c} color30={c30} delay={0}   />
+          <KPICard label="Usuarios"       value={acc.usuarios}    color={c} color30={c30} delay={60}  />
+          <KPICard label="Tasa de Rebote" value={acc.tasaRebote}  color={c} color30={c30} delay={120} format="pct" invert />
+          <KPICard label="Duración Media" value={acc.duracion}    color={c} color30={c30} delay={180} format="dur" />
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="sec-hdr"><div className="sec-title">Leads &amp; Conversión</div><div className="sec-rule"/></div>
+        <div className="kpi-grid">
+          <KPICard label="Leads Totales"  value={acc.leads}        color={c} color30={c30} delay={0}   />
+          <KPICard label="Info Enviada"    value={acc.infoEnv}      color={c} color30={c30} delay={60}  />
+          <KPICard label="Muestras"        value={acc.muestras}     color={c} color30={c30} delay={120} />
+          <KPICard label="Convertidos"     value={acc.convertidos}  color={c} color30={c30} delay={180} />
+          <KPICard label="Interesados PL"  value={acc.interesadoPL} color={c} color30={c30} delay={240} />
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="sec-hdr"><div className="sec-title">Inversión &amp; Ads</div><div className="sec-rule"/></div>
+        <div className="kpi-grid">
+          <KPICard label="Inversión Ads" value={acc.inversion}    color={c} color30={c30} delay={0}   format="eur" />
+          <KPICard label="Clics Ads"     value={acc.clics}        color={c} color30={c30} delay={60}  />
+          <KPICard label="CPC Medio"     value={acc.cpcMedio}     color={c} color30={c30} delay={120} format="eur" invert />
+          <KPICard label="CPL"           value={acc.cpl}          color={c} color30={c30} delay={180} format="eur" invert />
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="sec-hdr"><div className="sec-title">Embudo de Conversión (acumulado)</div><div className="sec-rule"/></div>
+        <div className="two-col" style={{ alignItems:'start' }}>
+          <ConversionFunnel
+            data={{ leadsTotales:acc.leads, infoEnviada:acc.infoEnv, muestras:acc.muestras, convertidos:acc.convertidos }}
+            color={c} color60={c60} color30={c30}
+          />
+          <div className="chart-card">
+            <div className="chart-title">Calidad de Leads</div>
+            <LeadQuality data={{ caliente:acc.caliente, viable:acc.viable, exploratorio:acc.exploratorio, noViable:acc.noViable }} color={c} />
+          </div>
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="sec-hdr"><div className="sec-title">Detalle por Mes</div><div className="sec-rule"/></div>
+        <div className="chart-card" style={{ overflowX:'auto' }}>
+          <table className="year-tbl">
+            <thead>
+              <tr>
+                <th>Mes</th>
+                <th>Sesiones</th><th>Usuarios</th>
+                <th>Inversión</th><th>Clics</th><th>CPL</th>
+                <th>Leads</th><th>Convertidos</th>
+              </tr>
+            </thead>
+            <tbody>
+              {months.map(function(m) {
+                const g    = data.get(m);
+                const tot  = g ? g.total : null;
+                const caps = g ? g.campaigns : [];
+                const inv  = caps.reduce(function(s,x){ return s+fmt.n(x.inversion); },0) || fmt.n(tot?tot.inversion:null);
+                const cls  = caps.reduce(function(s,x){ return s+fmt.n(x.clicsAds); },0)  || fmt.n(tot?tot.clicsAds:null);
+                const conv = tot ? fmt.n(tot.conversiones) : 0;
+                const cpl  = conv > 0 ? inv/conv : null;
+                return (
+                  <tr key={m}>
+                    <td className="yt-month">{m}</td>
+                    <td className="nf">{fmt.num(tot?tot.sesiones:null)}</td>
+                    <td className="nf">{fmt.num(tot?tot.usuarios:null)}</td>
+                    <td className="nf" style={{ color:c, fontWeight:700 }}>{fmt.eur(inv||null)}</td>
+                    <td className="nf">{fmt.num(cls||null)}</td>
+                    <td className="nf">{fmt.eur(cpl)}</td>
+                    <td className="nf">{fmt.num(tot?tot.leadsTotales:null)}</td>
+                    <td className="nf">{fmt.num(tot?tot.convertidos:null)}</td>
+                  </tr>
+                );
+              })}
+              <tr className="yt-total">
+                <td className="yt-month">TOTAL</td>
+                <td className="nf">{fmt.num(acc.sesiones)}</td>
+                <td className="nf">{fmt.num(acc.usuarios)}</td>
+                <td className="nf" style={{ color:c }}>{fmt.eur(acc.inversion)}</td>
+                <td className="nf">{fmt.num(acc.clics)}</td>
+                <td className="nf">{fmt.eur(acc.cpl)}</td>
+                <td className="nf">{fmt.num(acc.leads)}</td>
+                <td className="nf">{fmt.num(acc.convertidos)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── MarketDashboard ─────────────────────────────────────────────────── */
 function MarketDashboard({ market }) {
   const { data, loading, error } = useSheetData(market.sheet);
@@ -1049,6 +1214,11 @@ function MarketDashboard({ market }) {
       {/* Month bar */}
       <div className="month-bar">
         <span className="month-lbl">Período</span>
+        <button
+          className="year-pill"
+          style={selMonth==='__resumen__' ? { background:c,borderColor:c,color:'#fff' } : {}}
+          onClick={() => setSelMonth('__resumen__')}
+        >Resumen anual</button>
         {months.map(function(m) {
           const active = selMonth===m;
           return (
@@ -1062,95 +1232,100 @@ function MarketDashboard({ market }) {
         })}
       </div>
 
-      {/* Traffic */}
-      <div className="section">
-        <div className="sec-hdr">
-          <div className="sec-title">Tráfico &amp; Comportamiento</div>
-          <div className="sec-rule"/>
-          {selMonth && <div className="sec-sub">{selMonth}</div>}
-        </div>
-        <div className="kpi-grid">
-          <KPICard label="Sesiones"      value={cur?cur.sesiones   :null} prev={prev?prev.sesiones   :null} color={c} color30={c30} delay={0}   />
-          <KPICard label="Usuarios"       value={cur?cur.usuarios    :null} prev={prev?prev.usuarios    :null} color={c} color30={c30} delay={60}  />
-          <KPICard label="Tasa de Rebote" value={cur?cur.tasaRebote :null} prev={prev?prev.tasaRebote :null} color={c} color30={c30} delay={120} format="pct" invert={true} />
-          <KPICard label="Duración Media" value={cur?cur.duracion   :null} prev={prev?prev.duracion   :null} color={c} color30={c30} delay={180} format="dur" />
-        </div>
-      </div>
+      {selMonth === '__resumen__'
+        ? <AnnualSummary data={data} months={months} market={market} />
+        : <div>
+            {/* Traffic */}
+            <div className="section">
+              <div className="sec-hdr">
+                <div className="sec-title">Tráfico &amp; Comportamiento</div>
+                <div className="sec-rule"/>
+                {selMonth && <div className="sec-sub">{selMonth}</div>}
+              </div>
+              <div className="kpi-grid">
+                <KPICard label="Sesiones"      value={cur?cur.sesiones   :null} prev={prev?prev.sesiones   :null} color={c} color30={c30} delay={0}   />
+                <KPICard label="Usuarios"       value={cur?cur.usuarios    :null} prev={prev?prev.usuarios    :null} color={c} color30={c30} delay={60}  />
+                <KPICard label="Tasa de Rebote" value={cur?cur.tasaRebote :null} prev={prev?prev.tasaRebote :null} color={c} color30={c30} delay={120} format="pct" invert={true} />
+                <KPICard label="Duración Media" value={cur?cur.duracion   :null} prev={prev?prev.duracion   :null} color={c} color30={c30} delay={180} format="dur" />
+              </div>
+            </div>
 
-      {/* Leads */}
-      <div className="section">
-        <div className="sec-hdr">
-          <div className="sec-title">Leads &amp; Conversión</div>
-          <div className="sec-rule"/>
-        </div>
-        <div className="kpi-grid">
-          <KPICard label="Leads Totales"  value={cur?cur.leadsTotales :null} prev={prev?prev.leadsTotales :null} color={c} color30={c30} delay={0}   />
-          <KPICard label="Info Enviada"    value={cur?cur.infoEnviada  :null} prev={prev?prev.infoEnviada  :null} color={c} color30={c30} delay={60}  />
-          <KPICard label="Muestras"        value={cur?cur.muestras     :null} prev={prev?prev.muestras     :null} color={c} color30={c30} delay={120} />
-          <KPICard label="Convertidos"     value={cur?cur.convertidos  :null} prev={prev?prev.convertidos  :null} color={c} color30={c30} delay={180} />
-          <KPICard label="Interesados PL"  value={cur?cur.interesadosPL:null} prev={prev?prev.interesadosPL:null} color={c} color30={c30} delay={240} />
-        </div>
-      </div>
+            {/* Leads */}
+            <div className="section">
+              <div className="sec-hdr">
+                <div className="sec-title">Leads &amp; Conversión</div>
+                <div className="sec-rule"/>
+              </div>
+              <div className="kpi-grid">
+                <KPICard label="Leads Totales"  value={cur?cur.leadsTotales :null} prev={prev?prev.leadsTotales :null} color={c} color30={c30} delay={0}   />
+                <KPICard label="Info Enviada"    value={cur?cur.infoEnviada  :null} prev={prev?prev.infoEnviada  :null} color={c} color30={c30} delay={60}  />
+                <KPICard label="Muestras"        value={cur?cur.muestras     :null} prev={prev?prev.muestras     :null} color={c} color30={c30} delay={120} />
+                <KPICard label="Convertidos"     value={cur?cur.convertidos  :null} prev={prev?prev.convertidos  :null} color={c} color30={c30} delay={180} />
+                <KPICard label="Interesados PL"  value={cur?cur.interesadosPL:null} prev={prev?prev.interesadosPL:null} color={c} color30={c30} delay={240} />
+              </div>
+            </div>
 
-      {/* Ads */}
-      <div className="section">
-        <div className="sec-hdr">
-          <div className="sec-title">Inversión &amp; Ads</div>
-          <div className="sec-rule"/>
-        </div>
-        <div className="kpi-grid">
-          <KPICard label="Inversión Ads" value={totInv   ||null} prev={prevTotInv   ||null} color={c} color30={c30} delay={0}   format="eur" />
-          <KPICard label="Clics Ads"     value={totClics ||null} prev={prevTotClics ||null} color={c} color30={c30} delay={60}  />
-          <KPICard label="CPC Medio"     value={cur?cur.cpcMedio:null} prev={prev?prev.cpcMedio:null} color={c} color30={c30} delay={120} format="eur" invert={true} />
-          <KPICard label="CPL"           value={cur?cur.cpl     :null} prev={prev?prev.cpl     :null} color={c} color30={c30} delay={180} format="eur" invert={true} />
-        </div>
-      </div>
+            {/* Ads */}
+            <div className="section">
+              <div className="sec-hdr">
+                <div className="sec-title">Inversión &amp; Ads</div>
+                <div className="sec-rule"/>
+              </div>
+              <div className="kpi-grid">
+                <KPICard label="Inversión Ads" value={totInv   ||null} prev={prevTotInv   ||null} color={c} color30={c30} delay={0}   format="eur" />
+                <KPICard label="Clics Ads"     value={totClics ||null} prev={prevTotClics ||null} color={c} color30={c30} delay={60}  />
+                <KPICard label="CPC Medio"     value={cur?cur.cpcMedio:null} prev={prev?prev.cpcMedio:null} color={c} color30={c30} delay={120} format="eur" invert={true} />
+                <KPICard label="CPL"           value={cur?cur.cpl     :null} prev={prev?prev.cpl     :null} color={c} color30={c30} delay={180} format="eur" invert={true} />
+              </div>
+            </div>
 
-      {/* Funnel + Quality */}
-      <div className="section">
-        <div className="sec-hdr">
-          <div className="sec-title">Embudo de Conversión</div>
-          <div className="sec-rule"/>
-        </div>
-        <div className="two-col" style={{ alignItems:'start' }}>
-          <ConversionFunnel data={cur} color={c} color60={c60} color30={c30} />
-          <div className="chart-card">
-            <div className="chart-title">Calidad de Leads</div>
-            <LeadQuality data={cur} color={c} />
+            {/* Funnel + Quality */}
+            <div className="section">
+              <div className="sec-hdr">
+                <div className="sec-title">Embudo de Conversión</div>
+                <div className="sec-rule"/>
+              </div>
+              <div className="two-col" style={{ alignItems:'start' }}>
+                <ConversionFunnel data={cur} color={c} color60={c60} color30={c30} />
+                <div className="chart-card">
+                  <div className="chart-title">Calidad de Leads</div>
+                  <LeadQuality data={cur} color={c} />
+                </div>
+              </div>
+            </div>
+
+            {/* Historical */}
+            {months.length>1 && (
+              <div className="section">
+                <div className="sec-hdr">
+                  <div className="sec-title">Evolución Histórica</div>
+                  <div className="sec-rule"/>
+                </div>
+                <HistoryCharts monthsData={data} months={months} color={c} />
+              </div>
+            )}
+
+            {/* Campaigns */}
+            <div className="section">
+              <div className="sec-hdr">
+                <div className="sec-title">Desglose por Campaña</div>
+                <div className="sec-rule"/>
+              </div>
+              <div className="chart-card">
+                <CampaignBreakdown campaigns={campaigns} color={c} />
+              </div>
+            </div>
+
+            {/* Conclusiones */}
+            <div className="section">
+              <div className="sec-hdr">
+                <div className="sec-title">Análisis y Conclusiones</div>
+                <div className="sec-rule"/>
+              </div>
+              <ConclusionesSection market={market} month={selMonth} color={c} color30={c30} />
+            </div>
           </div>
-        </div>
-      </div>
-
-      {/* Historical */}
-      {months.length>1 && (
-        <div className="section">
-          <div className="sec-hdr">
-            <div className="sec-title">Evolución Histórica</div>
-            <div className="sec-rule"/>
-          </div>
-          <HistoryCharts monthsData={data} months={months} color={c} />
-        </div>
-      )}
-
-      {/* Campaigns */}
-      <div className="section">
-        <div className="sec-hdr">
-          <div className="sec-title">Desglose por Campaña</div>
-          <div className="sec-rule"/>
-        </div>
-        <div className="chart-card">
-          <CampaignBreakdown campaigns={campaigns} color={c} />
-        </div>
-      </div>
-
-      {/* Conclusiones */}
-      <div className="section">
-        <div className="sec-hdr">
-          <div className="sec-title">Análisis y Conclusiones</div>
-          <div className="sec-rule"/>
-        </div>
-        <ConclusionesSection market={market} month={selMonth} color={c} color30={c30} />
-      </div>
+      }
     </div>
   );
 }
