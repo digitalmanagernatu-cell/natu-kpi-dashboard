@@ -701,8 +701,10 @@ function HistoryCharts({ monthsData, months, color }) {
     const inv = (g ? g.campaigns : []).reduce((s,c) => s+fmt.n(c.inversion),0) || fmt.n(tot?tot.inversion:null);
     return {
       mes:  mes.length>9 ? mes.slice(0,3) : mes,
-      Leads:       fmt.n(tot?tot.leadsTotales:null),
-      Convertidos: fmt.n(tot?tot.convertidos:null),
+      Leads:           fmt.n(tot?tot.leadsTotales:null),
+      'Info Enviada':  fmt.n(tot?tot.infoEnviada:null),
+      Muestras:        fmt.n(tot?tot.muestras:null),
+      Convertidos:     fmt.n(tot?tot.convertidos:null),
       'Inversión': inv,
     };
   });
@@ -718,8 +720,10 @@ function HistoryCharts({ monthsData, months, color }) {
             <YAxis tick={axis} axisLine={false} tickLine={false} />
             <Tooltip content={<ChartTooltip />} />
             <Legend iconType="circle" iconSize={7} wrapperStyle={{ fontSize:11,color:'var(--text-dim)',fontFamily:'Montserrat,sans-serif' }} />
-            <Line type="monotone" dataKey="Leads"       stroke={color}     strokeWidth={2.5} dot={{ r:4,fill:color,strokeWidth:0 }}     activeDot={{ r:6 }} />
-            <Line type="monotone" dataKey="Convertidos" stroke="#7aab8a"   strokeWidth={2.5} dot={{ r:4,fill:'#7aab8a',strokeWidth:0 }} activeDot={{ r:6 }} />
+            <Line type="monotone" dataKey="Leads"          stroke={color}   strokeWidth={2.5} dot={{ r:4,fill:color,strokeWidth:0 }}     activeDot={{ r:6 }} />
+            <Line type="monotone" dataKey="Info Enviada"   stroke="#b8956a" strokeWidth={2}   dot={{ r:3,fill:'#b8956a',strokeWidth:0 }} activeDot={{ r:5 }} strokeDasharray="5 3" />
+            <Line type="monotone" dataKey="Muestras"       stroke="#a0b8d8" strokeWidth={2}   dot={{ r:3,fill:'#a0b8d8',strokeWidth:0 }} activeDot={{ r:5 }} strokeDasharray="3 3" />
+            <Line type="monotone" dataKey="Convertidos"    stroke="#7aab8a" strokeWidth={2.5} dot={{ r:4,fill:'#7aab8a',strokeWidth:0 }} activeDot={{ r:6 }} />
           </LineChart>
         </ResponsiveContainer>
       </div>
