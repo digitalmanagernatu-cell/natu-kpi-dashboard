@@ -1050,7 +1050,7 @@ function AnnualSummary({ data, months, market }) {
       inversion, clics,
       cpcMedio:    clics > 0        ? inversion/clics        : null,
       conversiones,
-      cpl:         conversiones > 0 ? inversion/conversiones : null,
+      cpl:         leads > 0 ? inversion/leads : null,
       leads, infoEnv, muestras, convertidos, interesadoPL,
       exploratorio, viable, caliente, noViable,
     };
@@ -1133,8 +1133,8 @@ function AnnualSummary({ data, months, market }) {
                 const caps = g ? g.campaigns : [];
                 const inv  = caps.reduce(function(s,x){ return s+fmt.n(x.inversion); },0) || fmt.n(tot?tot.inversion:null);
                 const cls  = caps.reduce(function(s,x){ return s+fmt.n(x.clicsAds); },0)  || fmt.n(tot?tot.clicsAds:null);
-                const conv = tot ? fmt.n(tot.conversiones) : 0;
-                const cpl  = conv > 0 ? inv/conv : null;
+                const leadsRow = tot ? fmt.n(tot.leadsTotales) : 0;
+                const cpl      = leadsRow > 0 ? inv/leadsRow : null;
                 return (
                   <tr key={m}>
                     <td className="yt-month">{m}</td>
