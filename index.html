@@ -777,42 +777,39 @@ function ConclusionesSection({ market, month, color, color30 }) {
       setText(localStorage.getItem('natu_cl_' + rowKey) || '');
       return;
     }
+    let active = true;
     setNet('loading');
     scriptCall({})
       .then(function(data) {
-        console.log('[Conclusiones] rowKey buscado:', JSON.stringify(rowKey));
-        console.log('[Conclusiones] claves devueltas por el script:', Object.keys(data));
-        console.log('[Conclusiones] valor encontrado:', data[rowKey]);
-        const scriptText = data[rowKey];
-        if (scriptText) {
-          setText(scriptText);
-        } else {
-          // Script OK but key not found — fall back to local cache
-          setText(localStorage.getItem('natu_cl_' + rowKey) || '');
-        }
-        setNet('idle');
-      })
-      .catch(function(err) {
-        console.error('[Conclusiones] error llamando al script:', err);
-        const cached = localStorage.getItem('natu_cl_' + rowKey) || '';
-        setText(cached);
-        setFetchErr(err && err.message ? err.message : 'Error al conectar con el script');
-        setNet('idle');
-      });
-  }, [rowKey]);
-
-  function retryLoad() {
-    if (!rowKey || !SCRIPT_URL) return;
-    setFetchErr('');
-    setNet('loading');
-    scriptCall({})
-      .then(function(data) {
+        if (!active) return;
         const scriptText = data[rowKey];
         setText(scriptText || localStorage.getItem('natu_cl_' + rowKey) || '');
         setNet('idle');
       })
       .catch(function(err) {
+        if (!active) return;
         setText(localStorage.getItem('natu_cl_' + rowKey) || '');
+        setFetchErr(err && err.message ? err.message : 'Error al conectar con el script');
+        setNet('idle');
+      });
+    return function() { active = false; };
+  }, [rowKey]);
+
+  function retryLoad() {
+    if (!rowKey || !SCRIPT_URL) return;
+    const keyAtRetry = rowKey;
+    setFetchErr('');
+    setNet('loading');
+    scriptCall({})
+      .then(function(data) {
+        if (rowKey !== keyAtRetry) return;
+        const scriptText = data[keyAtRetry];
+        setText(scriptText || localStorage.getItem('natu_cl_' + keyAtRetry) || '');
+        setNet('idle');
+      })
+      .catch(function(err) {
+        if (rowKey !== keyAtRetry) return;
+        setText(localStorage.getItem('natu_cl_' + keyAtRetry) || '');
         setFetchErr(err && err.message ? err.message : 'Error al conectar con el script');
         setNet('idle');
       });
